@@ -1,0 +1,137 @@
+-- Query 1 --
+/*Pull information from the crime_scene_report table based on
+the information given in prompt- date, type of crime, and city*/
+  SELECT date, type, city, description
+  FROM crime_scene_report
+  WHERE date='20180115' AND type='murder' AND city='SQL City'
+
+/*Now we know there are 2 witnesses.
+The first witness lives at the last house on "Northwestern Dr".
+The second witness, named Annabel, lives somewhere on "Franklin Ave".*/
+
+-- Query 2 --
+/*First, find the number for the last house on "Northwestern Dr"*/
+  SELECT Max(address_number)
+  FROM person
+  WHERE address_street_name='Northwestern Dr'
+
+  /*Answer: 4919*/
+
+-- Query 3 --
+/*Then, pull the information for both witnesses*/
+  SELECT * FROM person
+  WHERE (address_street_name='Northwestern Dr') AND (address_number='4919')
+  OR (address_street_name='Franklin Ave') AND (name LIKE '%Annabel%')
+
+  /*The witnesses are Morty Schapiro (person id 14887)
+  and Annabel Miller (person id 16371)*/
+
+-- Query 4 --
+/*Pull the witness' interviews for more leads*/
+  SELECT * FROM interview
+  WHERE person_id = '14887' OR person_id = '16371'
+
+  /*Morty Schapiro (14887) interview: I heard a gunshot and then saw a man run out.
+  He had a "Get Fit Now Gym" bag. The membership number on the bag started with "48Z".
+  Only gold members have those bags. The man got into a car with a plate that included "H42W".
+
+   Annabel Miller (16371) interview: I saw the murder happen, and I recognized the killer
+   from my gym when I was working out last week on January the 9th.*/
+
+-- Query 5 --
+/*Narrow down members of 'Get Fit Now' gym by searching for
+gold members with '48Z' in their Membership ID.*/
+  SELECT * FROM get_fit_now_member
+  WHERE membership_status="gold" AND id LIKE '%48Z%'
+
+  /*Get back 2 results- Joe Germuska and Jeremy Bowers*/
+
+-- Query 6 --
+/*Check each member number in the check-in logs to see
+if they checked in on January 9th from the witness' statement.*/
+  SELECT * FROM get_fit_now_check_in
+  WHERE (membership_id='48Z7A') AND (check_in_date='20180109')
+  OR (membership_id = '48Z55') AND (check_in_date='20180109')
+
+  /*Both checked in on that date*/
+
+-- Query 7 --
+/*Check the time the witness checked in/out of the gym
+to see if it aligns with either suspect.
+First, pull the witness' get_fit_now_member id*/
+  SELECT * FROM get_fit_now_member
+  WHERE person_id='16371'
+
+  /*Witness Annabel Miller's gym membership id is 90081*/
+
+-- Query 8 --
+/*Retrieve the witness' check in time from get_fit_now_check_in
+using the get_fit_now membership_id*/
+  SELECT * FROM get_fit_now_check_in
+  WHERE membership_id = '90081'AND check_in_date='20180109'
+
+  /*Both suspects check-in and check-out times overlap with the witness'*/
+
+-- Query 9 --
+/*Pull the license plate records to find cars with
+plate numbers including "H42W"*/
+  SELECT * FROM drivers_license
+  WHERE plate_number LIKE '%H42W%' AND gender='male'
+
+  /*Get back 2 results- license_id 664760 and 423327*/
+
+-- Query 10 --
+/*Take the license_id from the drivers_license output
+compare to the 2 suspects from the gym*/
+  SELECT license_id, id, name FROM person
+  WHERE license_id='664760' OR license_id='423327'
+
+/*One name matches all criteria, the murderer is: Jeremy Bowers*/
+
+/*Answer is correct.
+Message: Congrats, you found the murderer!
+But wait, there's more... If you think you're up for a challenge,
+try querying the interview transcript of the murderer to find the
+real villain behind this crime.*/
+
+-- Query 11 --
+/*Query the interview transcript of the murderer*/
+  SELECT * FROM interview
+  WHERE person_id = '67318'
+
+  /*Interview: I was hired by a woman with a lot of money.
+  I don't know her name but I know she's around 5'5" (65") or 5'7" (67").
+  She has red hair and she drives a Tesla Model S.
+  I know that she attended the SQL Symphony Concert 3 times in December 2017.*/
+
+-- Query 12 --
+/*Narrow down suspects and retrieve the accomplice's license_id*/
+  SELECT * FROM drivers_license
+  WHERE (height BETWEEN '65' and '67') AND (hair_color='red')
+  AND (car_make='Tesla') AND (car_model='Model S')
+
+  /*Receive 3 suspects with license ids: 202298, 291182, and 918773*/
+
+-- Query 13 --
+/*Use the license ids to pull the person ids for all suspects*/
+  SELECT * FROM person
+  WHERE license_id='202298' OR license_id='291182' OR license_id='918773'
+
+  /*The corresponding person ids are: 78881 (Red Korb),
+  90700 (Regina George), and 99716 (Miranda Priestly)*/
+
+-- Query 14 --
+/*Find if any of the 3 suspects went to the SQLSymphony Concert
+3 times in December*/
+  SELECT *, count(*) FROM facebook_event_checkin
+  WHERE (event_name='SQL Symphony Concert') AND (date LIKE '%201712%')
+  AND (person_id='78881' OR person_id='90700' OR person_id='99716')
+  GROUP BY person_id HAVING COUNT(*) == 3
+
+  /*Only one suspect with person_id 99716 (Miranda Priestly) is found.
+  The accomplice who hired the murderer is: Miranda Priestly*/
+
+/*Answer is correct.
+Message: Congrats, you found the brains behind the murder!
+Everyone in SQL City hails you as the greatest SQL detective of all time.
+Time to break out the champagne!*/
